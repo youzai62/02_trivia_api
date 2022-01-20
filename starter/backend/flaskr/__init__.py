@@ -76,17 +76,16 @@ def create_app(test_config=None):
     categories = Category.query.order_by(Category.id).all()
     formatted_categories = [category.format() for category in categories]
 
-    if len(questions) == 0:
+    if len(formatted_questions) == 0:
         abort(404)
     
-    if len(categories) == 0:
+    if len(formatted_categories) == 0:
         abort(404)
     
     return jsonify({
         'success': True,
         'questions': formatted_questions,
         'total_questions': len(questions),
-        'currentCategories': None,
         'categories': formatted_categories,
     })
   '''
@@ -98,22 +97,12 @@ def create_app(test_config=None):
   '''
   @app.route('/questions/<int:question_id>', methods=["DELETE"])
   #@cross_origin
-  def retrieves_questions(question_id):
+  def delete_specific_question(question_id):
     question = Question.query.filter(Question.id == question_id).one_or_none()
     if question is None:
             abort(404)
     question.delete()
-    questions = Question.query.order_by(Question.id).all()
-    formatted_questions = paginate(request, questions)
-    categories = Category.query.order_by(Category.id).all()
-    formatted_categories = [category.format() for category in categories]
 
-    if len(questions) == 0:
-        abort(404)
-    
-    if len(categories) == 0:
-        abort(404)
-    
     return jsonify({
         'success': True,
         'deleted': question_id
@@ -131,24 +120,21 @@ def create_app(test_config=None):
   @app.route('/questions', methods=["POST"])
   #@cross_origin
   def create_question():
-    body = request.get_json()
-    question = body.get('question', None)
-    answer = body.get('answer', None)
-    category = body.get('category', None)
-    difficulty = body.get('difficulty', None)
+    
     try:
-        question = Question(question, answer, category, difficulty)
-        question.insert()
-        
-        questions = Question.query.order_by(Question.id).all()
-        formatted_questions = paginate(request, questions)
-        if len(formatted_questions) == 0:
-            return abort(404)
-        return jsonify({
-            'success': True
-        })
+      body = request.get_json()
+      question = body.get('question', None)
+      answer = body.get('answer', None)
+      category = body.get('category', None)
+      difficulty = body.get('difficulty', None)
+      question = Question(question, answer, category, difficulty)
+      question.insert()
+  
+      return jsonify({
+        'success': True
+      })
     except:
-        abort(422)
+      abort(400)
   '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 
@@ -159,7 +145,7 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
-  @app.route('/questions', methods=["POST"])
+  @app.route('/questions/search', methods=["POST"])
   #@cross_origin
   def search_question():
     body = request.get_json()
@@ -185,7 +171,7 @@ def create_app(test_config=None):
   '''
   @app.route('/categories/<int:category_id>/questions', methods=["GET"])
   #@cross_origin
-  def retrieves_questions(category_id):
+  def retrieves_category_questions(category_id):
     questions = Question.query.filter(Question.category == category_id).order_by(Question.id).all()
     formatted_questions = paginate(request, questions)
     category = Category.query.filter(Category.id == category_id).one_or_none()
