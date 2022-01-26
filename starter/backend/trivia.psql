@@ -119,6 +119,7 @@ COPY public.categories (id, type) FROM stdin;
 4	History
 5	Entertainment
 6	Sports
+7	Other
 \.
 
 
@@ -153,7 +154,7 @@ COPY public.questions (id, question, answer, difficulty, category) FROM stdin;
 -- Name: categories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.categories_id_seq', 6, true);
+SELECT pg_catalog.setval('public.categories_id_seq', 7, true);
 
 
 --

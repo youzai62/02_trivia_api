@@ -85,7 +85,7 @@ def create_app(test_config=None):
     return jsonify({
         'success': True,
         'questions': formatted_questions,
-        'total_questions': len(questions),
+        'totalQuestions': len(questions),
         'categories': formatted_categories,
     })
   '''
@@ -145,21 +145,23 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
-  @app.route('/questions/search', methods=["POST"])
+  @app.route('/questions/result', methods=["POST"])
   #@cross_origin
   def search_question():
-    body = request.get_json()
-    search_term = body.get('searchTerm', None)
-    result=Question.query.filter(Question.question.ilike('%{}%',search_term)).all()
-    formatted_questions = paginate(request, result)
-    if len(result) == 0:
-            return abort(404)
-    return jsonify({
-        'success': True,
-        'questions': formatted_questions,
-        'totalQuestions': len(result),
-        'curentCategory': None  
-    })
+    try:
+      body = request.get_json()
+      search_term = body.get('searchTerm', None)
+      result=Question.query.filter(Question.question.ilike('%{}%'.format(search_term))).all()
+      formatted_questions = [question.format() for question in result]
+
+      return jsonify({
+          'success': True,
+          'questions': formatted_questions,
+          'totalQuestions': len(result),
+          'curentCategory': None  
+      })
+    except:
+      abort(400)
 
   '''
   @TODO: 
@@ -175,15 +177,14 @@ def create_app(test_config=None):
     questions = Question.query.filter(Question.category == category_id).order_by(Question.id).all()
     formatted_questions = paginate(request, questions)
     category = Category.query.filter(Category.id == category_id).one_or_none()
-
-    if len(questions) == 0:
-        abort(404)
+    if not category:
+      abort(404)
     
     return jsonify({
         'success': True,
         'questions': formatted_questions,
         'totalQuestions': len(questions),
-        'currentCategory': category.type
+        'currentCategory': category_id
     })
 
   '''
@@ -204,22 +205,25 @@ def create_app(test_config=None):
     previous_questions = body.get('previous_questions', None)
     category = body.get('quiz_category', None)
     if category:
-      category = Category.query.filter(Category.type == category).one_or_none()
-      questions = Question.query.filter(Question.category == category.id).order_by(Question.id).all()
+      try:
+        category = Category.query.filter(Category.type == category).one_or_none()
+        questions = Question.query.filter(Question.category == category.id).order_by(Question.id).all()
+      except:
+        abort(400)
     else:
       questions = Question.query.order_by(Question.id).all()
     total_questions=len(questions)
+    if total_questions == 0:
+      abort(422)
     random_question= questions[random.randrange(0,total_questions,1)]
     while random_question.id in previous_questions:
       if len(previous_questions) == total_questions:
-        break
+        abort(422)
       else:
         random_question= questions[random.randrange(0,total_questions,1)]
     return jsonify({
       'success': True,
-      'question': random_question.format(),
-      'totalQuestion': total_questions,
-      'currentCategory': category
+      'question': random_question.format()
     })
 
   '''
