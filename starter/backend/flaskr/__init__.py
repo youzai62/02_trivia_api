@@ -45,7 +45,7 @@ def create_app(test_config=None):
   #@cross_origin
   def retrieves_categories():
     categories = Category.query.order_by(Category.id).all()
-    formatted_categories = [category.format() for category in categories]
+    formatted_categories = {category.id: category.type for category in categories}
 
     if len(categories) == 0:
         abort(404)
@@ -74,7 +74,7 @@ def create_app(test_config=None):
     questions = Question.query.order_by(Question.id).all()
     formatted_questions = paginate(request, questions)
     categories = Category.query.order_by(Category.id).all()
-    formatted_categories = [category.format() for category in categories]
+    formatted_categories = {category.id: category.type for category in categories}
 
     if len(formatted_questions) == 0:
         abort(404)
@@ -85,8 +85,9 @@ def create_app(test_config=None):
     return jsonify({
         'success': True,
         'questions': formatted_questions,
-        'totalQuestions': len(questions),
+        'totalQuestions': len(formatted_questions),
         'categories': formatted_categories,
+        'current_category':None
     })
   '''
   @TODO: 
@@ -153,11 +154,12 @@ def create_app(test_config=None):
       search_term = body.get('searchTerm', None)
       result=Question.query.filter(Question.question.ilike('%{}%'.format(search_term))).all()
       formatted_questions = [question.format() for question in result]
-
+      if len(formatted_questions) == 0:
+        abort(404)
       return jsonify({
           'success': True,
           'questions': formatted_questions,
-          'totalQuestions': len(result),
+          'totalQuestions': len(formatted_questions),
           'curentCategory': None  
       })
     except:
@@ -204,21 +206,23 @@ def create_app(test_config=None):
     body = request.get_json()
     previous_questions = body.get('previous_questions', None)
     category = body.get('quiz_category', None)
-    if category:
+    if category['id']:
       try:
-        category = Category.query.filter(Category.type == category).one_or_none()
-        questions = Question.query.filter(Question.category == category.id).order_by(Question.id).all()
+        questions = Question.query.filter(Question.category == category['id']).order_by(Question.id).all()
       except:
         abort(400)
     else:
-      questions = Question.query.order_by(Question.id).all()
+      questions = Question.query.all()
     total_questions=len(questions)
     if total_questions == 0:
-      abort(422)
+      abort(404)
     random_question= questions[random.randrange(0,total_questions,1)]
     while random_question.id in previous_questions:
       if len(previous_questions) == total_questions:
-        abort(422)
+        return jsonify({
+          'success': True,
+          'question': None
+        })
       else:
         random_question= questions[random.randrange(0,total_questions,1)]
     return jsonify({
